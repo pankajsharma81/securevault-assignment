@@ -25,3 +25,8 @@ export const shareSchema = z.object({
   wrappedKey: z.string().min(1),
   wrapIv: z.string().min(1),
 });
+
+export const revokeParamsSchema = z.object({
+  id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid file id'),
+  userId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user id'),
+});

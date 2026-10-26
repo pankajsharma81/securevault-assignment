@@ -11,6 +11,10 @@ export const FILE_MESSAGES = {
   ALREADY_SHARED: "Already shared with this user",
   RECIPIENT_NOT_FOUND: "Recipient not found",
   CANNOT_SHARE_SELF: "Cannot share with yourself",
+  ACL_LISTED: "Access list fetched",
+  REVOKED: "Access revoked",
+  CANNOT_REVOKE_OWNER: "Owner access cannot be revoked",
+  ACL_NOT_FOUND: "User does not have access to this file",
 } as const;
 
 export const MAX_FILE_SIZE = 1024 * 1024 * 1024 + 64 * 1024 * 1024;

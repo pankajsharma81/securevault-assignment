@@ -6,5 +6,20 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/securevault
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret}
+      STORAGE_DIR: /data/storage
+    volumes:
+      - file_data:/data/storage
+    depends_on:
+      - mongo
+
 volumes:
   mongo_data:
+  file_data:

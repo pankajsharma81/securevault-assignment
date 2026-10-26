@@ -34,4 +34,14 @@ export const FileRepo = {
     Acl.findOne({ fileId, userId })
       .populate("grantedBy", "email publicKey")
       .lean(),
+
+  listAclsByFile: (fileId: string) =>
+    Acl.find({ fileId })
+      .populate("userId", "email")
+      .populate("grantedBy", "email")
+      .sort({ createdAt: 1 })
+      .lean(),
+
+  deleteAcl: (fileId: string, userId: string) =>
+    Acl.findOneAndDelete({ fileId, userId }),
 };

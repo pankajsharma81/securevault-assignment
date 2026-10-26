@@ -2,6 +2,7 @@ import { FileRepo } from "./file.repo";
 import { Readable } from "stream";
 import { AppError } from "../../core/errors/AppError";
 import { Storage } from "../../storage/local.storage";
+import { AuditRepo } from "../audit/audit.repo";
 import {
   FILE_MESSAGES,
   CHUNK_OVERHEAD,
@@ -82,6 +83,8 @@ export const FileService = {
     }
 
     await FileRepo.markComplete(fileId);
+    await FileRepo.markComplete(fileId);
+    await AuditRepo.log({ fileId, actorId: userId, action: "upload" });
     return { fileId, status: "complete" };
   },
 
@@ -96,6 +99,9 @@ export const FileService = {
       throw new AppError(FILE_MESSAGES.NOT_COMPLETE, 409);
     if (n >= file.chunkCount) throw new AppError("Invalid chunk number", 400);
 
+    if (n === 0) {
+      await AuditRepo.log({ fileId, actorId: userId, action: "download" });
+    }
     return Storage.readChunk(fileId, n);
   },
 
@@ -170,6 +176,57 @@ export const FileService = {
       grantedBy: userId,
     });
 
+    await AuditRepo.log({
+      fileId,
+      actorId: userId,
+      action: "share",
+      targetUserId: recipient.id,
+    });
+
     return { fileId, sharedWith: recipient.email, role: "viewer" };
+  },
+
+  listAcl: async (userId: string, fileId: string) => {
+    const file = await FileRepo.findFileById(fileId);
+    if (!file) throw new AppError(FILE_MESSAGES.NOT_FOUND, 404);
+
+    const ownerAcl = await FileRepo.findAcl(fileId, userId);
+    if (!ownerAcl || ownerAcl.role !== "owner")
+      throw new AppError(FILE_MESSAGES.FORBIDDEN, 403);
+
+    const acls: any[] = await FileRepo.listAclsByFile(fileId);
+    return acls
+      .filter((a) => a.userId && a.grantedBy)
+      .map((a) => ({
+        userId: a.userId._id,
+        email: a.userId.email,
+        role: a.role,
+        grantedBy: a.grantedBy.email,
+        grantedAt: a.createdAt,
+      }));
+  },
+
+  revokeShare: async (userId: string, fileId: string, targetUserId: string) => {
+    const file = await FileRepo.findFileById(fileId);
+    if (!file) throw new AppError(FILE_MESSAGES.NOT_FOUND, 404);
+
+    const ownerAcl = await FileRepo.findAcl(fileId, userId);
+    if (!ownerAcl || ownerAcl.role !== "owner")
+      throw new AppError(FILE_MESSAGES.FORBIDDEN, 403);
+
+    if (targetUserId === userId)
+      throw new AppError(FILE_MESSAGES.CANNOT_REVOKE_OWNER, 400);
+
+    const removed = await FileRepo.deleteAcl(fileId, targetUserId);
+    if (!removed) throw new AppError(FILE_MESSAGES.ACL_NOT_FOUND, 404);
+
+    await AuditRepo.log({
+      fileId,
+      actorId: userId,
+      action: "revoke",
+      targetUserId,
+    });
+
+    return { fileId, revokedUserId: targetUserId };
   },
 };

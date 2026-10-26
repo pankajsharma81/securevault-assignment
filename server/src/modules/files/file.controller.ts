@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../../types';
-import { chunkParamsSchema, fileIdParamSchema, initUploadSchema, shareSchema } from './file.schema';
+import { chunkParamsSchema, fileIdParamSchema, initUploadSchema, revokeParamsSchema, shareSchema } from './file.schema';
 import { FileService } from './file.service';
 import { asyncWrapper } from '../../shared/utils/asyncWrapper';
 import { sendSuccess } from '../../shared/utils/apiResponse';
@@ -49,4 +49,14 @@ export const shareFileHandler = asyncWrapper(async (req: AuthRequest, res: Respo
   const body = shareSchema.parse(req.body);
   const result = await FileService.shareFile(req.user!.id, id, body);
   sendSuccess(res, result, FILE_MESSAGES.SHARED, 201);
+});
+
+export const listAclHandler = asyncWrapper(async (req: AuthRequest, res: Response) => {
+  const { id } = fileIdParamSchema.parse(req.params);
+  sendSuccess(res, await FileService.listAcl(req.user!.id, id), FILE_MESSAGES.ACL_LISTED);
+});
+
+export const revokeShareHandler = asyncWrapper(async (req: AuthRequest, res: Response) => {
+  const { id, userId } = revokeParamsSchema.parse(req.params);
+  sendSuccess(res, await FileService.revokeShare(req.user!.id, id, userId), FILE_MESSAGES.REVOKED);
 });
