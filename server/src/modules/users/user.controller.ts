@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginSchema, registerSchema } from './user.schema';
+import { emailParamSchema, loginSchema, registerSchema } from './user.schema';
 import { UserService } from './user.service';
 import { asyncWrapper } from '../../shared/utils/asyncWrapper';
 import { sendSuccess } from '../../shared/utils/apiResponse';
@@ -16,4 +16,10 @@ export const loginHandler = asyncWrapper(async (req: Request, res: Response) => 
   const { email, authKey } = loginSchema.parse(req.body);
   const result = await UserService.login(email, authKey);
   sendSuccess(res, result, USER_MESSAGES.LOGGED_IN);
+});
+
+export const getPublicKeyHandler = asyncWrapper(async (req: Request, res: Response) => {
+  const { email } = emailParamSchema.parse(req.params);
+  const result = await UserService.getPublicKey(email);
+  sendSuccess(res, result, USER_MESSAGES.PUBLIC_KEY_FETCHED);
 });

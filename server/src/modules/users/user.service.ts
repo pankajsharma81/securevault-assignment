@@ -62,4 +62,12 @@ export const UserService = {
       },
     };
   },
+
+  getPublicKey: async (email: string) => {
+    const user = await UserRepo.findByEmail(email);
+    if (!user) {
+      throw new AppError(USER_MESSAGES.NOT_FOUND, 404);
+    }
+    return { id: user.id, email: user.email, publicKey: user.publicKey };
+  },
 };
