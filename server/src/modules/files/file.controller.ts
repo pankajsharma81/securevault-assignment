@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../../types';
-import { chunkParamsSchema, fileIdParamSchema, initUploadSchema } from './file.schema';
+import { chunkParamsSchema, fileIdParamSchema, initUploadSchema, shareSchema } from './file.schema';
 import { FileService } from './file.service';
 import { asyncWrapper } from '../../shared/utils/asyncWrapper';
 import { sendSuccess } from '../../shared/utils/apiResponse';
@@ -31,4 +31,22 @@ export const downloadChunkHandler = asyncWrapper(async (req: AuthRequest, res: R
   res.setHeader('Content-Type', 'application/octet-stream');
   stream.on('error', next);
   stream.pipe(res);
+});
+
+export const listFilesHandler = asyncWrapper(async (req: AuthRequest, res: Response) => {
+  const files = await FileService.listFiles(req.user!.id);
+  sendSuccess(res, files, FILE_MESSAGES.LISTED);
+});
+
+export const getFileHandler = asyncWrapper(async (req: AuthRequest, res: Response) => {
+  const { id } = fileIdParamSchema.parse(req.params);
+  const file = await FileService.getFile(req.user!.id, id);
+  sendSuccess(res, file, FILE_MESSAGES.FETCHED);
+});
+
+export const shareFileHandler = asyncWrapper(async (req: AuthRequest, res: Response) => {
+  const { id } = fileIdParamSchema.parse(req.params);
+  const body = shareSchema.parse(req.body);
+  const result = await FileService.shareFile(req.user!.id, id, body);
+  sendSuccess(res, result, FILE_MESSAGES.SHARED, 201);
 });

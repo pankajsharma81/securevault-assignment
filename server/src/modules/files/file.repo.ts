@@ -26,4 +26,12 @@ export const FileRepo = {
 
   markComplete: (id: string) =>
     File.findByIdAndUpdate(id, { status: "complete" }),
+
+  listAclsByUser: (userId: string) =>
+    Acl.find({ userId }).populate("fileId").sort({ createdAt: -1 }).lean(),
+
+  findAclWithGranter: (fileId: string, userId: string) =>
+    Acl.findOne({ fileId, userId })
+      .populate("grantedBy", "email publicKey")
+      .lean(),
 };

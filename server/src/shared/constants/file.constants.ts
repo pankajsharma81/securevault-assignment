@@ -5,6 +5,12 @@ export const FILE_MESSAGES = {
   CHUNK_SAVED: "Chunk saved",
   COMPLETED: "Upload completed",
   NOT_COMPLETE: "File upload not completed",
+  LISTED: "Files fetched",
+  FETCHED: "File fetched",
+  SHARED: "File shared",
+  ALREADY_SHARED: "Already shared with this user",
+  RECIPIENT_NOT_FOUND: "Recipient not found",
+  CANNOT_SHARE_SELF: "Cannot share with yourself",
 } as const;
 
 export const MAX_FILE_SIZE = 1024 * 1024 * 1024 + 64 * 1024 * 1024;

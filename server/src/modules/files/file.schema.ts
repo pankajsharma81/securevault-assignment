@@ -19,3 +19,9 @@ export const chunkParamsSchema = z.object({
 export const fileIdParamSchema = z.object({
   id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid file id'),
 });
+
+export const shareSchema = z.object({
+  recipientEmail: z.string().email(),
+  wrappedKey: z.string().min(1),
+  wrapIv: z.string().min(1),
+});

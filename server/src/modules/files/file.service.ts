@@ -6,6 +6,7 @@ import {
   FILE_MESSAGES,
   CHUNK_OVERHEAD,
 } from "../../shared/constants/file.constants";
+import { UserRepo } from "../users/user.repo";
 
 interface InitInput {
   name: string;
@@ -96,5 +97,79 @@ export const FileService = {
     if (n >= file.chunkCount) throw new AppError("Invalid chunk number", 400);
 
     return Storage.readChunk(fileId, n);
+  },
+
+  listFiles: async (userId: string) => {
+    const acls: any[] = await FileRepo.listAclsByUser(userId);
+    return acls
+      .filter((a) => a.fileId)
+      .map((a) => ({
+        id: a.fileId._id,
+        name: a.fileId.name,
+        size: a.fileId.size,
+        mimeType: a.fileId.mimeType,
+        status: a.fileId.status,
+        role: a.role,
+        createdAt: a.fileId.createdAt,
+      }));
+  },
+
+  getFile: async (userId: string, fileId: string) => {
+    const file = await FileRepo.findFileById(fileId);
+    if (!file) throw new AppError(FILE_MESSAGES.NOT_FOUND, 404);
+
+    const acl: any = await FileRepo.findAclWithGranter(fileId, userId);
+    if (!acl) throw new AppError(FILE_MESSAGES.FORBIDDEN, 403);
+
+    return {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      mimeType: file.mimeType,
+      chunkSize: file.chunkSize,
+      chunkCount: file.chunkCount,
+      status: file.status,
+      role: acl.role,
+      wrappedKey: acl.wrappedKey,
+      wrapIv: acl.wrapIv,
+      grantedBy: {
+        id: acl.grantedBy._id,
+        email: acl.grantedBy.email,
+        publicKey: acl.grantedBy.publicKey,
+      },
+    };
+  },
+
+  shareFile: async (
+    userId: string,
+    fileId: string,
+    input: { recipientEmail: string; wrappedKey: string; wrapIv: string },
+  ) => {
+    const file = await FileRepo.findFileById(fileId);
+    if (!file) throw new AppError(FILE_MESSAGES.NOT_FOUND, 404);
+
+    const ownerAcl = await FileRepo.findAcl(fileId, userId);
+    if (!ownerAcl || ownerAcl.role !== "owner") {
+      throw new AppError(FILE_MESSAGES.FORBIDDEN, 403);
+    }
+
+    const recipient = await UserRepo.findByEmail(input.recipientEmail);
+    if (!recipient) throw new AppError(FILE_MESSAGES.RECIPIENT_NOT_FOUND, 404);
+    if (recipient.id === userId)
+      throw new AppError(FILE_MESSAGES.CANNOT_SHARE_SELF, 400);
+
+    const existing = await FileRepo.findAcl(fileId, recipient.id);
+    if (existing) throw new AppError(FILE_MESSAGES.ALREADY_SHARED, 409);
+
+    await FileRepo.createAcl({
+      fileId,
+      userId: recipient.id,
+      role: "viewer",
+      wrappedKey: input.wrappedKey,
+      wrapIv: input.wrapIv,
+      grantedBy: userId,
+    });
+
+    return { fileId, sharedWith: recipient.email, role: "viewer" };
   },
 };
