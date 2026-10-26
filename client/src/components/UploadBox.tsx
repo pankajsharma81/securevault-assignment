@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSession } from "../lib/session";
 import { uploadFile } from "../lib/upload";
 
 export default function UploadBox({ onDone }: { onDone: () => void }) {
   const { session } = useSession();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [pct, setPct] = useState<number | null>(null);
+  const [drag, setDrag] = useState(false);
   const [error, setError] = useState("");
 
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !session) return;
+  const handleFile = async (file: File) => {
+    if (!session) return;
     setError("");
     setPct(0);
     try {
@@ -19,15 +20,44 @@ export default function UploadBox({ onDone }: { onDone: () => void }) {
       setError(err.message);
     } finally {
       setPct(null);
-      e.target.value = "";
+      if (inputRef.current) inputRef.current.value = "";
     }
   };
 
+  const busy = pct !== null;
+
   return (
-    <div>
-      <input type="file" onChange={onPick} disabled={pct !== null} />
-      {pct !== null && <span> Uploading… {pct}%</span>}
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+    <div
+      className={"drop" + (drag ? " active" : "")}
+      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+      onDragLeave={() => setDrag(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDrag(false);
+        const f = e.dataTransfer.files?.[0];
+        if (f && !busy) handleFile(f);
+      }}
+      onClick={() => !busy && inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        hidden
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+        }}
+      />
+      {!busy ? (
+        <p style={{ margin: 0 }}>Drag & drop a file here, or click to choose</p>
+      ) : (
+        <>
+          <p style={{ margin: "0 0 8px" }}>Encrypting & uploading… {pct}%</p>
+          <progress value={pct ?? 0} max={100} />
+        </>
+      )}
+      {error && <p style={{ color: "crimson", marginBottom: 0 }}>{error}</p>}
     </div>
   );
 }

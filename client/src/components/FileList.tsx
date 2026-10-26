@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useSession } from "../lib/session";
 import { downloadFile } from "../lib/download";
+import ShareBox from "./ShareBox";
+import AuditBox from "./AuditBox";
 
 interface Item {
   id: string;
@@ -22,6 +24,8 @@ export default function FileList({ refreshKey }: { refreshKey: number }) {
   const [pct, setPct] = useState(0);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [auditId, setAuditId] = useState<string | null>(null);
 
   useEffect(() => {
     api<Item[]>("/files").then(setItems).catch((e) => setError(e.message));
@@ -73,7 +77,15 @@ export default function FileList({ refreshKey }: { refreshKey: number }) {
                   <>
                     <button disabled={busyId !== null} onClick={() => run(f, "download")}>Download</button>{" "}
                     {f.mimeType === "application/pdf" && (
-                      <button disabled={busyId !== null} onClick={() => run(f, "preview")}>Preview</button>
+                      <>
+                        <button disabled={busyId !== null} onClick={() => run(f, "preview")}>Preview</button>{" "}
+                      </>
+                    )}
+                    {f.role === "owner" && (
+                      <>
+                        <button onClick={() => setShareId(f.id)}>Share</button>{" "}
+                        <button className="secondary" onClick={() => setAuditId(f.id)}>Audit</button>
+                      </>
                     )}
                   </>
                 )}
@@ -83,6 +95,9 @@ export default function FileList({ refreshKey }: { refreshKey: number }) {
           ))}
         </tbody>
       </table>
+
+      {shareId && <ShareBox fileId={shareId} onClose={() => setShareId(null)} />}
+      {auditId && <AuditBox fileId={auditId} onClose={() => setAuditId(null)} />}
 
       {preview && (
         <div style={{ marginTop: 16 }}>

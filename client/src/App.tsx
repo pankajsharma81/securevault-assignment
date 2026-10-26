@@ -1,4 +1,3 @@
-
 import { SessionProvider, useSession } from "./lib/session";
 import AuthPage from "./pages/AuthPage";
 import { useState } from "react";
@@ -10,11 +9,20 @@ function Inner() {
   const [refreshKey, setRefreshKey] = useState(0);
   if (!session) return <AuthPage />;
   return (
-    <div style={{ padding: 24 }}>
-      <p>Logged in as {session.user.email}</p>
-      <button onClick={logout}>Logout</button>
-      <UploadBox onDone={() => setRefreshKey((k) => k + 1)} />
-      <FileList refreshKey={refreshKey} />
+    <div>
+      <div className="topbar">
+        <h2 style={{ margin: 0 }}>SecureVault</h2>
+        <div>
+          {session.user.email}{" "}
+          <button className="secondary" onClick={logout}>Logout</button>
+        </div>
+      </div>
+      <div className="card">
+        <UploadBox onDone={() => setRefreshKey((k) => k + 1)} />
+      </div>
+      <div className="card">
+        <FileList refreshKey={refreshKey} />
+      </div>
     </div>
   );
 }
